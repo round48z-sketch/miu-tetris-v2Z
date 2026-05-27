@@ -27,16 +27,78 @@
     </header>
 
     <main class="stage-wrap">
-      <button type="button" id="btn-home" class="home-btn hidden" aria-label="タイトルに戻る">HOME</button>
+      <aside class="game-chrome game-chrome--left" aria-label="ゲーム情報">
+        <div class="chrome-card chrome-stats">
+          <div class="chrome-stat">
+            <span class="chrome-label">SCORE</span>
+            <span id="score-side" class="chrome-value">0</span>
+          </div>
+          <div class="chrome-stat">
+            <span class="chrome-label">LINES</span>
+            <span id="lines-side" class="chrome-value">0</span>
+          </div>
+          <div class="chrome-stat">
+            <span class="chrome-label">LEVEL</span>
+            <span id="level-side" class="chrome-value">1</span>
+          </div>
+        </div>
+        <div class="chrome-card">
+          <p class="chrome-title">HOLD</p>
+          <div id="hold-preview" class="preview-grid" aria-hidden="true"></div>
+        </div>
+      </aside>
+
+      <aside class="game-chrome game-chrome--right" aria-label="次ピース情報">
+        <div class="chrome-card">
+          <p class="chrome-title">NEXT</p>
+          <div id="next-preview" class="preview-grid" aria-hidden="true"></div>
+        </div>
+        <button type="button" id="btn-retry-live" class="home-btn retry-btn hidden" aria-label="やり直し">RETRY</button>
+        <button type="button" id="btn-home" class="home-btn hidden" aria-label="タイトルに戻る">HOME</button>
+      </aside>
+
       <canvas id="board" width="200" height="400" aria-label="テトリス盤面"></canvas>
       <div id="overlay" class="overlay hidden">
-        <p class="overlay-title">GAME OVER</p>
-        <p class="overlay-score">SCORE <span id="final-score">0</span></p>
-        <button type="button" id="btn-restart" class="neon-btn">RESTART</button>
+        <div class="game-over-panel">
+          <p class="overlay-title">GAME OVER</p>
+          <p class="overlay-score">SCORE <span id="final-score">0</span></p>
+          <div class="music-ad-card" aria-label="AIみうの楽曲案内">
+            <img id="music-ad-image" class="music-ad-image" src="fire.jpg" alt="AIみう 楽曲ジャケット">
+            <p class="music-ad-title">AIみうの曲を聴く</p>
+            <p id="music-ad-track" class="music-ad-track">FIRE</p>
+            <p class="music-ad-copy">Spotifyでフル再生</p>
+            <button type="button" id="btn-spotify" class="music-ad-btn">OPEN SPOTIFY</button>
+          </div>
+          <div class="game-over-actions">
+            <button type="button" id="btn-restart" class="neon-btn">RETRY</button>
+            <button type="button" id="btn-home-go" class="home-btn">HOME</button>
+          </div>
+        </div>
       </div>
       <div id="start-screen" class="overlay">
+        <img src="title.jpg" alt="" class="title-image" aria-hidden="true">
         <h1 class="logo">MIU<br>TETRIS</h1>
         <p class="tagline">PINK NEON</p>
+        <div class="level-select" role="group" aria-label="開始レベル">
+          <button type="button" class="level-btn is-active" data-level="1" aria-pressed="true">1</button>
+          <button type="button" class="level-btn" data-level="2" aria-pressed="false">2</button>
+          <button type="button" class="level-btn" data-level="3" aria-pressed="false">3</button>
+          <button type="button" class="level-btn" data-level="4" aria-pressed="false">4</button>
+          <button type="button" class="level-btn" data-level="5" aria-pressed="false">5</button>
+        </div>
+        <button type="button" id="btn-audio-settings" class="settings-btn" aria-expanded="false" aria-controls="audio-settings-panel">SETTINGS</button>
+        <div id="audio-settings-panel" class="audio-settings hidden" aria-label="音量設定">
+          <label class="audio-row" for="bgm-volume">
+            <span class="audio-label">BGM</span>
+            <input id="bgm-volume" class="audio-slider" type="range" min="0" max="100" value="65">
+            <span id="bgm-volume-value" class="audio-value">65</span>
+          </label>
+          <label class="audio-row" for="se-volume">
+            <span class="audio-label">SE</span>
+            <input id="se-volume" class="audio-slider" type="range" min="0" max="100" value="60">
+            <span id="se-volume-value" class="audio-value">60</span>
+          </label>
+        </div>
         <button type="button" id="btn-start" class="neon-btn">START</button>
       </div>
     </main>

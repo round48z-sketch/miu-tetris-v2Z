@@ -22,10 +22,46 @@
   const scoreEl = document.getElementById("score");
   const linesEl = document.getElementById("lines");
   const levelEl = document.getElementById("level");
+  const scoreSideEl = document.getElementById("score-side");
+  const linesSideEl = document.getElementById("lines-side");
+  const levelSideEl = document.getElementById("level-side");
   const overlay = document.getElementById("overlay");
   const startScreen = document.getElementById("start-screen");
   const finalScoreEl = document.getElementById("final-score");
   const homeBtn = document.getElementById("btn-home");
+  const homeGoBtn = document.getElementById("btn-home-go");
+  const retryLiveBtn = document.getElementById("btn-retry-live");
+  const nextPreviewEl = document.getElementById("next-preview");
+  const holdPreviewEl = document.getElementById("hold-preview");
+  const bgmVolumeEl = document.getElementById("bgm-volume");
+  const seVolumeEl = document.getElementById("se-volume");
+  const bgmVolumeValueEl = document.getElementById("bgm-volume-value");
+  const seVolumeValueEl = document.getElementById("se-volume-value");
+  const audioSettingsBtn = document.getElementById("btn-audio-settings");
+  const audioSettingsPanel = document.getElementById("audio-settings-panel");
+  const spotifyBtn = document.getElementById("btn-spotify");
+  const musicAdImageEl = document.getElementById("music-ad-image");
+  const musicAdTrackEl = document.getElementById("music-ad-track");
+  const levelButtons = Array.from(document.querySelectorAll(".level-btn"));
+  const body = document.body;
+  const musicAds = [
+    {
+      title: "FIRE",
+      image: "fire.jpg",
+      url: "https://open.spotify.com/intl-ja/track/64ENDNvfw95DX9v45m1kKe?si=c71919499c694fcc",
+    },
+    {
+      title: "KIRAMEKI",
+      image: "kirameki.jpg",
+      url: "https://open.spotify.com/intl-ja/track/6FwegiT1StQcQK4zSJEZ5X?si=2b925b7ac105498f",
+    },
+    {
+      title: "IZON",
+      image: "izon.jpg",
+      url: "https://open.spotify.com/intl-ja/track/0rQOKHqwbgZuwXjuewZ3M0?si=15ffb57f7a47451d",
+    },
+  ];
+  let currentMusicAd = musicAds[0];
 
   let grid = [];
   let piece = null;
@@ -37,6 +73,258 @@
   let running = false;
   let animId = 0;
   let displayScale = 1;
+  let startLevel = 1;
+  let nextType = randomType();
+  let holdType = null;
+  const BGM_TRACKS = ["song1.mp3", "song2.mp3", "song3.mp3"];
+  const bgmAudio = new Audio();
+  let bgmVolume = 0.65;
+  let seVolume = 0.6;
+  let currentTrackIdx = -1;
+  let audioCtx = null;
+
+  bgmAudio.preload = "auto";
+  bgmAudio.loop = false;
+  bgmAudio.playsInline = true;
+
+  function calcDropInterval(currentLevel) {
+    return Math.max(120, 800 - (currentLevel - 1) * 70);
+  }
+
+  function clamp01(v) {
+    return Math.max(0, Math.min(1, v));
+  }
+
+  function loadAudioSettings() {
+    const savedBgm = Number(localStorage.getItem("miu-tetris-bgm-volume"));
+    const savedSe = Number(localStorage.getItem("miu-tetris-se-volume"));
+    if (!Number.isNaN(savedBgm)) bgmVolume = clamp01(savedBgm);
+    if (!Number.isNaN(savedSe)) seVolume = clamp01(savedSe);
+  }
+
+  function saveAudioSettings() {
+    localStorage.setItem("miu-tetris-bgm-volume", String(bgmVolume));
+    localStorage.setItem("miu-tetris-se-volume", String(seVolume));
+  }
+
+  function syncAudioSettingsUI() {
+    bgmVolumeEl.value = String(Math.round(bgmVolume * 100));
+    seVolumeEl.value = String(Math.round(seVolume * 100));
+    bgmVolumeValueEl.textContent = bgmVolumeEl.value;
+    seVolumeValueEl.textContent = seVolumeEl.value;
+    bgmAudio.volume = bgmVolume;
+  }
+
+  function setAudioSettingsOpen(open) {
+    audioSettingsPanel.classList.toggle("hidden", !open);
+    audioSettingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function ensureAudioContext() {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function createSeGain(ctx, now, peak, duration) {
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.001, peak), now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    gain.connect(ctx.destination);
+    return gain;
+  }
+
+  function playTone(ctx, now, opts) {
+    const osc = ctx.createOscillator();
+    osc.type = opts.type || "sine";
+    if (opts.freqAt) osc.frequency.setValueAtTime(opts.freqAt, now);
+    if (opts.freqTo) osc.frequency.exponentialRampToValueAtTime(opts.freqTo, now + opts.duration);
+    const gain = createSeGain(ctx, now, opts.peak, opts.duration);
+    osc.connect(gain);
+    osc.start(now);
+    osc.stop(now + opts.duration + 0.02);
+  }
+
+  function playSe(type) {
+    if (seVolume <= 0) return;
+    const ctx = ensureAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const v = seVolume * 0.36;
+
+    switch (type) {
+      case "move":
+        playTone(ctx, now, {
+          type: "square",
+          freqAt: 980,
+          freqTo: 820,
+          duration: 0.04,
+          peak: v * 0.65,
+        });
+        break;
+      case "rotate":
+        playTone(ctx, now, {
+          type: "sine",
+          freqAt: 1180,
+          freqTo: 1560,
+          duration: 0.07,
+          peak: v * 0.75,
+        });
+        break;
+      case "softDrop":
+        playTone(ctx, now, {
+          type: "triangle",
+          freqAt: 420,
+          freqTo: 310,
+          duration: 0.06,
+          peak: v * 0.7,
+        });
+        break;
+      case "hardDrop":
+        playTone(ctx, now, {
+          type: "sine",
+          freqAt: 190,
+          freqTo: 85,
+          duration: 0.12,
+          peak: v * 1.1,
+        });
+        break;
+      case "lineClear": {
+        const notes = [1040, 1320, 1560, 1760];
+        notes.forEach((freq, i) => {
+          const t = now + i * 0.035;
+          playTone(ctx, t, {
+            type: "sine",
+            freqAt: freq,
+            freqTo: freq * 1.08,
+            duration: 0.07,
+            peak: v * 0.55,
+          });
+        });
+        break;
+      }
+      case "gameOver":
+        playTone(ctx, now, {
+          type: "sawtooth",
+          freqAt: 360,
+          freqTo: 95,
+          duration: 0.45,
+          peak: v * 0.9,
+        });
+        break;
+      case "start": {
+        [660, 880, 1100].forEach((freq, i) => {
+          playTone(ctx, now + i * 0.05, {
+            type: "sine",
+            freqAt: freq,
+            freqTo: freq * 1.05,
+            duration: 0.08,
+            peak: v * 0.8,
+          });
+        });
+        break;
+      }
+      case "retry":
+        playTone(ctx, now, {
+          type: "square",
+          freqAt: 740,
+          freqTo: 980,
+          duration: 0.06,
+          peak: v * 0.75,
+        });
+        playTone(ctx, now + 0.07, {
+          type: "square",
+          freqAt: 980,
+          freqTo: 1180,
+          duration: 0.06,
+          peak: v * 0.7,
+        });
+        break;
+      case "home":
+        playTone(ctx, now, {
+          type: "triangle",
+          freqAt: 620,
+          freqTo: 380,
+          duration: 0.1,
+          peak: v * 0.7,
+        });
+        break;
+      default:
+        break;
+    }
+  }
+
+  function pickRandomTrack(excludeIdx) {
+    if (BGM_TRACKS.length === 0) return -1;
+    if (BGM_TRACKS.length === 1) return 0;
+    let idx = excludeIdx;
+    while (idx === excludeIdx) {
+      idx = (Math.random() * BGM_TRACKS.length) | 0;
+    }
+    return idx;
+  }
+
+  function playTrackByIndex(idx) {
+    if (idx < 0 || idx >= BGM_TRACKS.length) return;
+    currentTrackIdx = idx;
+    bgmAudio.src = BGM_TRACKS[idx];
+    bgmAudio.currentTime = 0;
+    bgmAudio.volume = bgmVolume;
+    bgmAudio.play().catch(() => {});
+  }
+
+  function startBgmRandom() {
+    if (BGM_TRACKS.length === 0) return;
+    const idx = pickRandomTrack(-1);
+    playTrackByIndex(idx);
+  }
+
+  function stopBgm() {
+    bgmAudio.pause();
+    bgmAudio.removeAttribute("src");
+    bgmAudio.load();
+    currentTrackIdx = -1;
+  }
+
+  function playNextBgmTrack() {
+    const idx = pickRandomTrack(currentTrackIdx);
+    playTrackByIndex(idx);
+  }
+
+  function pickRandomMusicAd() {
+    if (musicAds.length === 0) return null;
+    const idx = (Math.random() * musicAds.length) | 0;
+    return musicAds[idx];
+  }
+
+  function updateGameOverMusicAd() {
+    const ad = pickRandomMusicAd();
+    if (!ad) return;
+    currentMusicAd = ad;
+    musicAdTrackEl.textContent = ad.title;
+    musicAdImageEl.src = ad.image;
+    musicAdImageEl.alt = "AIみう " + ad.title + " ジャケット";
+  }
+
+  function syncGameBackground() {
+    const bgLevel = Math.max(1, Math.min(5, level));
+    body.style.setProperty("--game-bg-image", 'url("level' + bgLevel + '.jpg")');
+  }
+
+  function updateLevelButtonState() {
+    levelButtons.forEach((btn) => {
+      const isActive = Number(btn.dataset.level) === startLevel;
+      btn.classList.toggle("is-active", isActive);
+      btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+  }
 
   function createGrid() {
     return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
@@ -46,9 +334,32 @@
     return TYPES[(Math.random() * TYPES.length) | 0];
   }
 
-  function spawnPiece() {
-    const type = randomType();
+  function renderPreview(type, target) {
+    target.textContent = "";
+    if (!type) return;
     const def = SHAPES[type];
+    const minX = Math.min(...def.cells.map((c) => c[0]));
+    const minY = Math.min(...def.cells.map((c) => c[1]));
+    def.cells.forEach(([x, y]) => {
+      const cell = document.createElement("span");
+      cell.className = "preview-cell";
+      cell.style.setProperty("--px", String(x - minX));
+      cell.style.setProperty("--py", String(y - minY));
+      cell.style.setProperty("--pc", def.color);
+      target.appendChild(cell);
+    });
+  }
+
+  function updatePreviewPanels() {
+    renderPreview(nextType, nextPreviewEl);
+    renderPreview(holdType, holdPreviewEl);
+  }
+
+  function spawnPiece() {
+    const type = nextType;
+    nextType = randomType();
+    const def = SHAPES[type];
+    updatePreviewPanels();
     return {
       type,
       color: def.color,
@@ -85,6 +396,7 @@
       }
       grid[gy][gx] = piece.color;
     }
+    holdType = piece.type;
     clearLines();
     piece = spawnPiece();
     if (collides(piece.cells, piece.x, piece.y)) gameOver();
@@ -102,11 +414,13 @@
     }
     if (cleared > 0) {
       const points = [0, 100, 300, 500, 800];
-      score += (points[cleared] || 800) * level;
+      score += points[cleared] || 800;
       lines += cleared;
-      level = 1 + (lines / 10) | 0;
-      dropInterval = Math.max(120, 800 - (level - 1) * 70);
+      level = startLevel + ((lines / 10) | 0);
+      dropInterval = calcDropInterval(level);
       updateHud();
+      syncGameBackground();
+      playSe("lineClear");
     }
   }
 
@@ -114,6 +428,9 @@
     scoreEl.textContent = score;
     linesEl.textContent = lines;
     levelEl.textContent = level;
+    scoreSideEl.textContent = score;
+    linesSideEl.textContent = lines;
+    levelSideEl.textContent = level;
   }
 
   function move(dx, dy) {
@@ -128,61 +445,84 @@
   }
 
   function rotate() {
-    if (!running || !piece) return;
+    if (!running || !piece) return false;
     const rotated = rotateCells(piece.cells);
     const kicks = [0, -1, 1, -2, 2];
     for (const k of kicks) {
       if (!collides(rotated, piece.x + k, piece.y)) {
         piece.cells = rotated;
         piece.x += k;
-        return;
+        return true;
       }
     }
+    return false;
   }
 
   function hardDrop() {
     if (!running || !piece) return;
-    while (move(0, 1)) {}
-    score += 2;
-    updateHud();
+    let moved = false;
+    while (move(0, 1)) moved = true;
+    if (moved) playSe("hardDrop");
   }
 
   function gameOver() {
     running = false;
     cancelAnimationFrame(animId);
+    stopBgm();
+    playSe("gameOver");
+    updateGameOverMusicAd();
     finalScoreEl.textContent = score;
+    homeBtn.classList.add("hidden");
     overlay.classList.remove("hidden");
   }
 
   function showTitleScreen() {
     running = false;
     cancelAnimationFrame(animId);
+    nextType = randomType();
+    holdType = null;
     grid = createGrid();
     piece = spawnPiece();
     score = 0;
     lines = 0;
-    level = 1;
-    dropInterval = 800;
+    level = startLevel;
+    dropInterval = calcDropInterval(level);
     lastDrop = 0;
     updateHud();
     overlay.classList.add("hidden");
     startScreen.classList.remove("hidden");
     homeBtn.classList.add("hidden");
+    retryLiveBtn.classList.add("hidden");
+    stopBgm();
+    body.classList.remove("game-active");
+    body.style.removeProperty("--game-bg-image");
+    body.classList.add("title-screen");
+    setAudioSettingsOpen(false);
+    updatePreviewPanels();
     draw();
   }
 
   function resetGame() {
+    nextType = randomType();
+    holdType = null;
     grid = createGrid();
     piece = spawnPiece();
     score = 0;
     lines = 0;
-    level = 1;
-    dropInterval = 800;
+    level = startLevel;
+    dropInterval = calcDropInterval(level);
     lastDrop = 0;
     updateHud();
     overlay.classList.add("hidden");
     startScreen.classList.add("hidden");
+    setAudioSettingsOpen(false);
     homeBtn.classList.remove("hidden");
+    retryLiveBtn.classList.remove("hidden");
+    startBgmRandom();
+    syncGameBackground();
+    body.classList.add("game-active");
+    body.classList.remove("title-screen");
+    updatePreviewPanels();
     running = true;
     lastDrop = performance.now();
     cancelAnimationFrame(animId);
@@ -207,27 +547,81 @@
     displayScale = scale;
     canvas.style.width = boardW * scale + "px";
     canvas.style.height = boardH * scale + "px";
+    document.documentElement.style.setProperty("--board-render-width", boardW * scale + "px");
   }
 
-  function drawBlock(x, y, color, ghost) {
+  function parseColor(hex) {
+    const n = parseInt(hex.replace("#", ""), 16);
+    return {
+      r: (n >> 16) & 255,
+      g: (n >> 8) & 255,
+      b: n & 255,
+    };
+  }
+
+  function tone(rgb, amount, lighten) {
+    const v = lighten ? rgb + amount : rgb * amount;
+    return Math.max(0, Math.min(255, v | 0));
+  }
+
+  function drawBlock(x, y, color, ghost, glowing) {
     const px = x * BLOCK;
     const py = y * BLOCK;
-    const pad = 1;
+    const pad = 2;
+    const w = BLOCK - pad * 2;
+    const h = BLOCK - pad * 2;
+    const bx = px + pad;
+    const by = py + pad;
 
-    ctx.fillStyle = ghost ? "rgba(255, 79, 216, 0.08)" : color;
-    ctx.fillRect(px + pad, py + pad, BLOCK - pad * 2, BLOCK - pad * 2);
-
-    if (!ghost) {
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    if (ghost) {
+      ctx.fillStyle = "rgba(255, 79, 216, 0.12)";
+      ctx.fillRect(bx, by, w, h);
+      ctx.strokeStyle = "rgba(255, 190, 235, 0.45)";
       ctx.lineWidth = 1;
-      ctx.strokeRect(px + pad, py + pad, BLOCK - pad * 2, BLOCK - pad * 2);
-
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-      ctx.fillRect(px + pad, py + pad, BLOCK - pad * 2, 3);
-      ctx.shadowBlur = 0;
+      ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
+      return;
     }
+
+    const rgb = parseColor(color);
+
+    ctx.fillStyle = "rgba(255, 79, 216, 0.2)";
+    ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
+
+    if (glowing) {
+      ctx.shadowColor = "rgba(255, 79, 216, 0.9)";
+      ctx.shadowBlur = 9;
+    }
+
+    const bodyGrad = ctx.createLinearGradient(bx, by, bx, by + h);
+    bodyGrad.addColorStop(
+      0,
+      `rgb(${tone(rgb.r, 55, true)}, ${tone(rgb.g, 55, true)}, ${tone(rgb.b, 55, true)})`
+    );
+    bodyGrad.addColorStop(0.48, color);
+    bodyGrad.addColorStop(
+      1,
+      `rgb(${tone(rgb.r, 0.52, false)}, ${tone(rgb.g, 0.52, false)}, ${tone(rgb.b, 0.52, false)})`
+    );
+    ctx.fillStyle = bodyGrad;
+    ctx.fillRect(bx, by, w, h);
+
+    if (glowing) {
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+    }
+
+    const shineGrad = ctx.createLinearGradient(bx, by, bx, by + h * 0.5);
+    shineGrad.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+    shineGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = shineGrad;
+    ctx.fillRect(bx, by, w, Math.max(3, h * 0.42));
+
+    ctx.strokeStyle = "rgba(255, 236, 250, 0.95)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
+
+    ctx.strokeStyle = "rgba(255, 79, 216, 0.5)";
+    ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
   }
 
   function ghostY() {
@@ -258,17 +652,17 @@
 
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        if (grid[r][c]) drawBlock(c, r, grid[r][c], false);
+        if (grid[r][c]) drawBlock(c, r, grid[r][c], false, false);
       }
     }
 
     if (piece) {
       const gy = ghostY();
       for (const [x, y] of piece.cells) {
-        drawBlock(x + piece.x, y + gy, piece.color, true);
+        drawBlock(x + piece.x, y + gy, piece.color, true, false);
       }
       for (const [x, y] of piece.cells) {
-        drawBlock(x + piece.x, y + piece.y, piece.color, false);
+        drawBlock(x + piece.x, y + piece.y, piece.color, false, true);
       }
     }
   }
@@ -287,19 +681,16 @@
     if (!running) return;
     switch (action) {
       case "left":
-        move(-1, 0);
+        if (move(-1, 0)) playSe("move");
         break;
       case "right":
-        move(1, 0);
+        if (move(1, 0)) playSe("move");
         break;
       case "down":
-        if (move(0, 1)) {
-          score += 1;
-          updateHud();
-        }
+        if (move(0, 1)) playSe("softDrop");
         break;
       case "rotate":
-        rotate();
+        if (rotate()) playSe("rotate");
         break;
       case "hard":
         hardDrop();
@@ -308,9 +699,54 @@
     draw();
   }
 
-  document.getElementById("btn-start").addEventListener("click", resetGame);
-  document.getElementById("btn-restart").addEventListener("click", resetGame);
-  homeBtn.addEventListener("click", showTitleScreen);
+  document.getElementById("btn-start").addEventListener("click", () => {
+    playSe("start");
+    resetGame();
+  });
+  document.getElementById("btn-restart").addEventListener("click", () => {
+    playSe("retry");
+    resetGame();
+  });
+  retryLiveBtn.addEventListener("click", () => {
+    playSe("retry");
+    resetGame();
+  });
+  function goHome() {
+    playSe("home");
+    showTitleScreen();
+  }
+  homeBtn.addEventListener("click", goHome);
+  homeGoBtn.addEventListener("click", goHome);
+  bgmAudio.addEventListener("ended", playNextBgmTrack);
+  audioSettingsBtn.addEventListener("click", () => {
+    playSe("move");
+    setAudioSettingsOpen(audioSettingsBtn.getAttribute("aria-expanded") !== "true");
+  });
+  levelButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      startLevel = Number(btn.dataset.level) || 1;
+      updateLevelButtonState();
+      playSe("move");
+    });
+  });
+  bgmVolumeEl.addEventListener("input", () => {
+    bgmVolume = clamp01(Number(bgmVolumeEl.value) / 100);
+    syncAudioSettingsUI();
+    saveAudioSettings();
+  });
+  seVolumeEl.addEventListener("input", () => {
+    seVolume = clamp01(Number(seVolumeEl.value) / 100);
+    syncAudioSettingsUI();
+    saveAudioSettings();
+  });
+  spotifyBtn.addEventListener("click", () => {
+    playSe("start");
+    if (!currentMusicAd || !currentMusicAd.url) return;
+    const newTab = window.open(currentMusicAd.url, "_blank", "noopener,noreferrer");
+    if (!newTab) {
+      window.location.href = currentMusicAd.url;
+    }
+  });
 
   const REPEAT_DELAY = 220;
   const REPEAT_INTERVAL = 75;
@@ -354,6 +790,7 @@
 
   document.addEventListener("keydown", (e) => {
     if (startScreen.classList.contains("hidden") === false && e.code === "Space") {
+      playSe("start");
       resetGame();
       return;
     }
@@ -391,7 +828,12 @@
 
   canvas.width = COLS * BLOCK;
   canvas.height = ROWS * BLOCK;
+  loadAudioSettings();
+  syncAudioSettingsUI();
+  updateGameOverMusicAd();
   syncControlsHeight();
   resizeCanvas();
+  updateLevelButtonState();
+  showTitleScreen();
   draw();
 })();
