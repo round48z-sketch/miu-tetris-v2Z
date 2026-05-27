@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0012">
+  <title>MIU TETRIS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="hud">
+      <div class="hud-block">
+        <span class="label">SCORE</span>
+        <span id="score" class="value">0</span>
+      </div>
+      <div class="hud-block">
+        <span class="label">LINES</span>
+        <span id="lines" class="value">0</span>
+      </div>
+      <div class="hud-block">
+        <span class="label">LV</span>
+        <span id="level" class="value">1</span>
+      </div>
+    </header>
+
+    <main class="stage-wrap">
+      <button type="button" id="btn-home" class="home-btn hidden" aria-label="タイトルに戻る">HOME</button>
+      <canvas id="board" width="200" height="400" aria-label="テトリス盤面"></canvas>
+      <div id="overlay" class="overlay hidden">
+        <p class="overlay-title">GAME OVER</p>
+        <p class="overlay-score">SCORE <span id="final-score">0</span></p>
+        <button type="button" id="btn-restart" class="neon-btn">RESTART</button>
+      </div>
+      <div id="start-screen" class="overlay">
+        <h1 class="logo">MIU<br>TETRIS</h1>
+        <p class="tagline">PINK NEON</p>
+        <button type="button" id="btn-start" class="neon-btn">START</button>
+      </div>
+    </main>
+
+  </div>
+
+  <nav class="controls" aria-label="ゲーム操作">
+    <div class="controls-row">
+      <button type="button" class="ctrl-btn" data-action="left" data-repeat="true" aria-label="左移動">
+        <span class="ctrl-icon" aria-hidden="true">◀</span>
+        <span class="ctrl-label">左</span>
+      </button>
+      <button type="button" class="ctrl-btn ctrl-btn--main" data-action="rotate" aria-label="回転">
+        <span class="ctrl-icon" aria-hidden="true">↻</span>
+        <span class="ctrl-label">回転</span>
+      </button>
+      <button type="button" class="ctrl-btn" data-action="right" data-repeat="true" aria-label="右移動">
+        <span class="ctrl-icon" aria-hidden="true">▶</span>
+        <span class="ctrl-label">右</span>
+      </button>
+    </div>
+    <div class="controls-row">
+      <button type="button" class="ctrl-btn" data-action="down" aria-label="ソフトドロップ">
+        <span class="ctrl-icon" aria-hidden="true">▼</span>
+        <span class="ctrl-label">下</span>
+      </button>
+      <button type="button" class="ctrl-btn" data-action="hard" aria-label="ハードドロップ">
+        <span class="ctrl-icon" aria-hidden="true">⏬</span>
+        <span class="ctrl-label">落とす</span>
+      </button>
+    </div>
+  </nav>
+  <script src="game.js"></script>
+</body>
+</html>
