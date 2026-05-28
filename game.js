@@ -548,6 +548,23 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  function updateViewportHeightVar() {
+    const vv = window.visualViewport;
+    const viewportH = vv && vv.height ? vv.height : window.innerHeight;
+    const vh = Math.max(1, viewportH * 0.01);
+    document.documentElement.style.setProperty("--vh", vh + "px");
+    document.documentElement.style.setProperty("--app-vh", vh * 100 + "px");
+  }
+
+  function recalcLayout() {
+    updateViewportHeightVar();
+    resizeCanvas();
+  }
+
+  function recalcLayoutSoon() {
+    requestAnimationFrame(recalcLayout);
+  }
+
   function resizeCanvas() {
     syncControlsHeight();
     const wrap = canvas.parentElement;
@@ -848,12 +865,14 @@
     { passive: false }
   );
 
-  window.addEventListener("resize", resizeCanvas);
+  window.addEventListener("resize", recalcLayoutSoon);
   window.addEventListener("orientationchange", () => {
-    setTimeout(resizeCanvas, 150);
+    recalcLayoutSoon();
+    setTimeout(recalcLayout, 120);
+    setTimeout(recalcLayout, 300);
   });
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", resizeCanvas);
+    window.visualViewport.addEventListener("resize", recalcLayoutSoon);
   }
 
   canvas.width = COLS * BLOCK;
@@ -861,8 +880,9 @@
   loadAudioSettings();
   syncAudioSettingsUI();
   updateGameOverMusicAd();
-  syncControlsHeight();
-  resizeCanvas();
+  recalcLayout();
+  setTimeout(recalcLayout, 80);
+  setTimeout(recalcLayout, 240);
   updateLevelButtonState();
   showTitleScreen();
   draw();
