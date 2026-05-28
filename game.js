@@ -6,13 +6,13 @@
   const BLOCK = 20;
 
   const SHAPES = {
-    I: { color: "#7ef9ff", cells: [[0, 1], [1, 1], [2, 1], [3, 1]] },
-    O: { color: "#ffe66d", cells: [[1, 0], [2, 0], [1, 1], [2, 1]] },
+    I: { color: "#00e8ff", cells: [[0, 1], [1, 1], [2, 1], [3, 1]] },
+    O: { color: "#ffe566", cells: [[1, 0], [2, 0], [1, 1], [2, 1]] },
     T: { color: "#ff4fd8", cells: [[1, 0], [0, 1], [1, 1], [2, 1]] },
-    S: { color: "#7dff9a", cells: [[1, 0], [2, 0], [0, 1], [1, 1]] },
-    Z: { color: "#ff6b8a", cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
-    J: { color: "#a78bfa", cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
-    L: { color: "#ffb347", cells: [[2, 0], [0, 1], [1, 1], [2, 1]] },
+    S: { color: "#3dffa8", cells: [[1, 0], [2, 0], [0, 1], [1, 1]] },
+    Z: { color: "#ff4768", cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
+    J: { color: "#7b8cff", cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
+    L: { color: "#ff7a3d", cells: [[2, 0], [0, 1], [1, 1], [2, 1]] },
   };
 
   const TYPES = ["I", "O", "T", "S", "Z", "J", "L"];
@@ -82,6 +82,7 @@
   let seVolume = 0.6;
   let currentTrackIdx = -1;
   let audioCtx = null;
+  let lastSePreviewAt = 0;
   let lockedMobilePortraitHeight = 0;
   let lockedOrientationIsPortrait = null;
 
@@ -298,6 +299,21 @@
   function playNextBgmTrack() {
     const idx = pickRandomTrack(currentTrackIdx);
     playTrackByIndex(idx);
+  }
+
+  function previewBgmVolume() {
+    if (BGM_TRACKS.length === 0) return;
+    bgmAudio.volume = bgmVolume;
+    if (running) return;
+
+    if (!bgmAudio.getAttribute("src")) {
+      currentTrackIdx = 0;
+      bgmAudio.src = BGM_TRACKS[currentTrackIdx];
+      bgmAudio.currentTime = 0;
+    }
+    if (bgmAudio.paused) {
+      bgmAudio.play().catch(() => {});
+    }
   }
 
   function pickRandomMusicAd() {
@@ -663,64 +679,134 @@
     return Math.max(0, Math.min(255, v | 0));
   }
 
+  function rgba(rgb, alpha) {
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+  }
+
+  function roundRectPath(x, y, w, h, radius) {
+    const r = Math.min(radius, w / 2, h / 2);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, y, w, h, r);
+      return;
+    }
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  function fillRoundRect(x, y, w, h, radius) {
+    roundRectPath(x, y, w, h, radius);
+    ctx.fill();
+  }
+
+  function strokeRoundRect(x, y, w, h, radius) {
+    roundRectPath(x, y, w, h, radius);
+    ctx.stroke();
+  }
+
   function drawBlock(x, y, color, ghost, glowing) {
     const px = x * BLOCK;
     const py = y * BLOCK;
-    const pad = 2;
-    const w = BLOCK - pad * 2;
-    const h = BLOCK - pad * 2;
-    const bx = px + pad;
-    const by = py + pad;
+    const inset = 1;
+    const w = BLOCK - inset * 2;
+    const h = BLOCK - inset * 2;
+    const bx = px + inset;
+    const by = py + inset;
+    const radius = Math.max(4.5, BLOCK * 0.36);
+    const glowBoost = glowing ? 1.45 : 1;
 
     if (ghost) {
-      ctx.fillStyle = "rgba(255, 79, 216, 0.12)";
-      ctx.fillRect(bx, by, w, h);
-      ctx.strokeStyle = "rgba(255, 190, 235, 0.45)";
+      ctx.fillStyle = "rgba(255, 79, 216, 0.1)";
+      fillRoundRect(bx - 1, by - 1, w + 2, h + 2, radius + 1);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+      fillRoundRect(bx, by, w, h, radius);
+      ctx.strokeStyle = "rgba(255, 230, 250, 0.55)";
       ctx.lineWidth = 1;
-      ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
+      strokeRoundRect(bx + 0.5, by + 0.5, w - 1, h - 1, radius);
       return;
     }
 
     const rgb = parseColor(color);
+    const light = {
+      r: tone(rgb.r, 95, true),
+      g: tone(rgb.g, 95, true),
+      b: tone(rgb.b, 95, true),
+    };
+    const dark = {
+      r: tone(rgb.r, 0.32, false),
+      g: tone(rgb.g, 0.32, false),
+      b: tone(rgb.b, 0.32, false),
+    };
 
-    ctx.fillStyle = "rgba(255, 79, 216, 0.2)";
-    ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
+    ctx.fillStyle = rgba(rgb, 0.3 * glowBoost);
+    fillRoundRect(bx - 3, by - 3, w + 6, h + 6, radius + 3);
+    ctx.fillStyle = rgba(rgb, 0.2 * glowBoost);
+    fillRoundRect(bx - 2, by - 2, w + 4, h + 4, radius + 2);
+    ctx.fillStyle = rgba(rgb, 0.13 * glowBoost);
+    fillRoundRect(bx - 1, by - 1, w + 2, h + 2, radius + 1);
 
     if (glowing) {
-      ctx.shadowColor = "rgba(255, 79, 216, 0.9)";
-      ctx.shadowBlur = 9;
+      ctx.shadowColor = rgba(rgb, 1);
+      ctx.shadowBlur = 18;
     }
 
-    const bodyGrad = ctx.createLinearGradient(bx, by, bx, by + h);
-    bodyGrad.addColorStop(
-      0,
-      `rgb(${tone(rgb.r, 55, true)}, ${tone(rgb.g, 55, true)}, ${tone(rgb.b, 55, true)})`
-    );
-    bodyGrad.addColorStop(0.48, color);
-    bodyGrad.addColorStop(
-      1,
-      `rgb(${tone(rgb.r, 0.52, false)}, ${tone(rgb.g, 0.52, false)}, ${tone(rgb.b, 0.52, false)})`
-    );
-    ctx.fillStyle = bodyGrad;
-    ctx.fillRect(bx, by, w, h);
+    const cx = bx + w * 0.5;
+    const cy = by + h * 0.5;
+    const glassCore = ctx.createRadialGradient(cx - w * 0.14, cy - h * 0.2, 0, cx, cy, w * 0.9);
+    glassCore.addColorStop(0, rgba(light, 0.78));
+    glassCore.addColorStop(0.3, rgba(rgb, 0.72));
+    glassCore.addColorStop(0.68, rgba(rgb, 0.66));
+    glassCore.addColorStop(1, rgba(dark, 0.78));
+    ctx.fillStyle = glassCore;
+    fillRoundRect(bx, by, w, h, radius);
+
+    const tintGrad = ctx.createLinearGradient(bx, by, bx + w, by + h);
+    tintGrad.addColorStop(0, rgba(light, 0.38));
+    tintGrad.addColorStop(0.45, rgba(rgb, 0.28));
+    tintGrad.addColorStop(1, rgba(dark, 0.32));
+    ctx.fillStyle = tintGrad;
+    fillRoundRect(bx, by, w, h, radius);
+
+    const frostGrad = ctx.createLinearGradient(bx, by, bx + w, by + h);
+    frostGrad.addColorStop(0, "rgba(255, 255, 255, 0.34)");
+    frostGrad.addColorStop(0.32, "rgba(255, 255, 255, 0.1)");
+    frostGrad.addColorStop(1, "rgba(0, 0, 0, 0.12)");
+    ctx.fillStyle = frostGrad;
+    fillRoundRect(bx, by, w, h, radius);
 
     if (glowing) {
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
+      ctx.fillStyle = rgba(rgb, 0.28);
+      fillRoundRect(bx - 0.5, by - 0.5, w + 1, h + 1, radius + 0.5);
     }
 
-    const shineGrad = ctx.createLinearGradient(bx, by, bx, by + h * 0.5);
-    shineGrad.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+    const shineGrad = ctx.createLinearGradient(bx, by, bx, by + h * 0.65);
+    shineGrad.addColorStop(0, "rgba(255, 255, 255, 0.62)");
+    shineGrad.addColorStop(0.35, "rgba(255, 255, 255, 0.18)");
     shineGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = shineGrad;
-    ctx.fillRect(bx, by, w, Math.max(3, h * 0.42));
+    fillRoundRect(bx, by, w, h * 0.58, radius);
 
-    ctx.strokeStyle = "rgba(255, 236, 250, 0.95)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.98)";
+    ctx.lineWidth = 1.4;
+    strokeRoundRect(bx + 0.5, by + 0.5, w - 1, h - 1, radius);
 
-    ctx.strokeStyle = "rgba(255, 79, 216, 0.5)";
-    ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
+    ctx.strokeStyle = rgba(light, 0.82);
+    ctx.lineWidth = 0.95;
+    strokeRoundRect(bx + 1.1, by + 1.1, w - 2.2, h - 2.2, Math.max(3, radius - 1.1));
+
+    ctx.strokeStyle = rgba(rgb, 0.72);
+    ctx.lineWidth = 0.75;
+    strokeRoundRect(bx + 2, by + 2, w - 4, h - 4, Math.max(2.5, radius - 2));
   }
 
   function ghostY() {
@@ -734,7 +820,7 @@
     const h = ROWS * BLOCK;
     ctx.clearRect(0, 0, w, h);
 
-    ctx.strokeStyle = "rgba(255, 79, 216, 0.08)";
+    ctx.strokeStyle = "rgba(255, 79, 216, 0.06)";
     ctx.lineWidth = 1;
     for (let x = 0; x <= COLS; x++) {
       ctx.beginPath();
@@ -831,11 +917,17 @@
   bgmVolumeEl.addEventListener("input", () => {
     bgmVolume = clamp01(Number(bgmVolumeEl.value) / 100);
     syncAudioSettingsUI();
+    previewBgmVolume();
     saveAudioSettings();
   });
   seVolumeEl.addEventListener("input", () => {
     seVolume = clamp01(Number(seVolumeEl.value) / 100);
     syncAudioSettingsUI();
+    const now = performance.now();
+    if (now - lastSePreviewAt > 90) {
+      playSe("move");
+      lastSePreviewAt = now;
+    }
     saveAudioSettings();
   });
   spotifyBtn.addEventListener("click", () => {
