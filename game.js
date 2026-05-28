@@ -570,8 +570,9 @@
     const boardW = COLS * BLOCK;
     const boardH = ROWS * BLOCK;
     let scaleCap = 2;
-    if (window.innerWidth <= 430) scaleCap = 1.72;
-    if (window.innerWidth <= 390) scaleCap = 1.62;
+    if (window.innerWidth <= 768) scaleCap = 1.95;
+    if (window.innerWidth <= 430) scaleCap = 1.9;
+    if (window.innerWidth <= 390) scaleCap = 1.8;
     const scale = Math.min(maxW / boardW, maxH / boardH, scaleCap);
     displayScale = scale;
     canvas.style.width = boardW * scale + "px";
