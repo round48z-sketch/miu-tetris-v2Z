@@ -536,14 +536,43 @@
     document.documentElement.style.setProperty("--controls-h", h + "px");
   }
 
+  function parseCssLengthToPx(rawValue) {
+    const value = String(rawValue || "").trim();
+    if (!value) return 0;
+    if (value.endsWith("rem")) {
+      const rootSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      return (parseFloat(value) || 0) * rootSize;
+    }
+    if (value.endsWith("px")) return parseFloat(value) || 0;
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
   function resizeCanvas() {
     syncControlsHeight();
     const wrap = canvas.parentElement;
-    const maxW = wrap.clientWidth - 4;
+    const wrapMaxW = wrap.clientWidth - 4;
     const maxH = wrap.clientHeight - 4;
+    const rootStyle = getComputedStyle(document.documentElement);
+    const bodyStyle = getComputedStyle(document.body);
+    const bodyPadL = parseCssLengthToPx(bodyStyle.paddingLeft);
+    const bodyPadR = parseCssLengthToPx(bodyStyle.paddingRight);
+    const viewportW = window.innerWidth - bodyPadL - bodyPadR - 4;
+    let maxW = Math.max(120, Math.min(wrapMaxW, viewportW));
+
+    if (document.body.classList.contains("game-active")) {
+      const chromeW = parseCssLengthToPx(rootStyle.getPropertyValue("--chrome-w"));
+      const chromeGap = parseCssLengthToPx(rootStyle.getPropertyValue("--chrome-gap"));
+      const sideSpace = (chromeW + chromeGap) * 2;
+      maxW = Math.max(120, Math.min(maxW, viewportW - sideSpace));
+    }
+
     const boardW = COLS * BLOCK;
     const boardH = ROWS * BLOCK;
-    const scale = Math.min(maxW / boardW, maxH / boardH, 2);
+    let scaleCap = 2;
+    if (window.innerWidth <= 430) scaleCap = 1.72;
+    if (window.innerWidth <= 390) scaleCap = 1.62;
+    const scale = Math.min(maxW / boardW, maxH / boardH, scaleCap);
     displayScale = scale;
     canvas.style.width = boardW * scale + "px";
     canvas.style.height = boardH * scale + "px";
