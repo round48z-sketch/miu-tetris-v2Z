@@ -553,7 +553,7 @@
     const viewportH = vv && vv.height ? vv.height : window.innerHeight;
     const vh = Math.max(1, viewportH * 0.01);
     document.documentElement.style.setProperty("--vh", vh + "px");
-    document.documentElement.style.setProperty("--app-vh", vh * 100 + "px");
+    document.documentElement.style.setProperty("--app-height", vh * 100 + "px");
   }
 
   function recalcLayout() {
@@ -563,6 +563,12 @@
 
   function recalcLayoutSoon() {
     requestAnimationFrame(recalcLayout);
+  }
+
+  function forceInitialLayoutSync() {
+    recalcLayout();
+    setTimeout(recalcLayout, 300);
+    setTimeout(recalcLayout, 800);
   }
 
   function resizeCanvas() {
@@ -880,9 +886,11 @@
   loadAudioSettings();
   syncAudioSettingsUI();
   updateGameOverMusicAd();
-  recalcLayout();
-  setTimeout(recalcLayout, 80);
-  setTimeout(recalcLayout, 240);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", forceInitialLayoutSync, { once: true });
+  } else {
+    forceInitialLayoutSync();
+  }
   updateLevelButtonState();
   showTitleScreen();
   draw();
