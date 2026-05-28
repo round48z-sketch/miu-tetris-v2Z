@@ -912,6 +912,8 @@
   document.addEventListener(
     "touchmove",
     (e) => {
+      if (e.target.closest(".audio-slider")) return;
+      if (e.target.matches('input[type="range"]')) return;
       if (e.target.closest(".app")) e.preventDefault();
     },
     { passive: false }
