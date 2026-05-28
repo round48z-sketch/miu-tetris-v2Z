@@ -944,7 +944,7 @@
 
   function bindControlButton(btn) {
     const action = btn.dataset.action;
-    const canRepeat = btn.dataset.repeat === "true";
+    const canRepeat = btn.dataset.repeat === "true" || action === "down";
     let delayTimer = null;
     let repeatTimer = null;
 
