@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0a0012">
-  <title>MIU TETRIS</title>
+  <title>MIU BLOCKS</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -77,8 +77,11 @@
       </div>
       <div id="start-screen" class="overlay">
         <img src="title.jpg" alt="" class="title-image" aria-hidden="true">
-        <h1 class="logo">MIU<br>TETRIS</h1>
-        <p class="tagline">PINK NEON</p>
+        <h1 class="logo" aria-label="MIU BLOCKS">
+          <span class="logo-line logo-line--miu">MIU <span class="logo-heart" aria-hidden="true">♡</span></span>
+          <span class="logo-line logo-line--blocks">BLOCKS</span>
+        </h1>
+        <p class="tagline">PINK NEON PUZZLE</p>
         <div class="level-select" role="group" aria-label="開始レベル">
           <button type="button" class="level-btn is-active" data-level="1" aria-pressed="true">1</button>
           <button type="button" class="level-btn" data-level="2" aria-pressed="false">2</button>
