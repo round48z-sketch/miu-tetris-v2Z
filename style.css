@@ -830,7 +830,7 @@ body.game-active .ctrl-btn {
 /* Smartphone-only layout (iPhone Safari優先) */
 @media (max-width: 768px) {
   :root {
-    --controls-h: 6.45rem;
+    --controls-h: 7rem;
   }
 
   html,
@@ -974,8 +974,8 @@ body.game-active .ctrl-btn {
   }
 
   .controls {
-    gap: 0.14rem;
-    padding: 0.12rem 0.32rem calc(0.12rem + var(--safe-bottom));
+    gap: 0.16rem;
+    padding: 0.14rem 0.3rem calc(0.14rem + var(--safe-bottom));
     position: fixed;
     left: 0;
     right: 0;
@@ -985,22 +985,32 @@ body.game-active .ctrl-btn {
   }
 
   .controls-row {
-    gap: 0.2rem;
+    gap: 0.18rem;
+    width: min(100%, 22rem);
   }
 
   .ctrl-btn {
-    min-height: 2.18rem;
-    height: clamp(2.08rem, 9.4vw, 2.48rem);
+    min-height: 2.44rem;
+    height: clamp(2.36rem, 10.6vw, 2.76rem);
     border-radius: 11px;
-    padding: 0.2rem;
+    padding: 0.28rem 0.22rem;
+    border-width: 1.5px;
   }
 
   .ctrl-icon {
-    font-size: 0.94rem;
+    font-size: 1.02rem;
   }
 
   .ctrl-label {
-    font-size: 0.5rem;
+    font-size: 0.54rem;
+  }
+
+  /* iPhoneで押しやすくするためタップ時の反応面を厚めに */
+  .ctrl-btn::before {
+    content: "";
+    position: absolute;
+    inset: -0.08rem;
+    border-radius: inherit;
   }
 
   #overlay {
