@@ -82,6 +82,8 @@
   let seVolume = 0.6;
   let currentTrackIdx = -1;
   let audioCtx = null;
+  let lockedMobilePortraitHeight = 0;
+  let lockedOrientationIsPortrait = null;
 
   bgmAudio.preload = "auto";
   bgmAudio.loop = false;
@@ -522,6 +524,7 @@
     syncGameBackground();
     body.classList.add("game-active");
     body.classList.remove("title-screen");
+    stabilizeLayoutAfterStart();
     updatePreviewPanels();
     running = true;
     lastDrop = performance.now();
@@ -548,9 +551,41 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  function isMobileViewport() {
+    return window.innerWidth <= 768;
+  }
+
+  function isPortraitViewport() {
+    const vv = window.visualViewport;
+    const w = vv && vv.width ? vv.width : window.innerWidth;
+    const h = vv && vv.height ? vv.height : window.innerHeight;
+    return h >= w;
+  }
+
+  function resetMobileHeightLock() {
+    lockedMobilePortraitHeight = 0;
+    lockedOrientationIsPortrait = null;
+  }
+
   function updateViewportHeightVar() {
     const vv = window.visualViewport;
-    const viewportH = vv && vv.height ? vv.height : window.innerHeight;
+    const rawViewportH = vv && vv.height ? vv.height : window.innerHeight;
+    let viewportH = rawViewportH;
+
+    if (isMobileViewport()) {
+      const isPortrait = isPortraitViewport();
+      if (lockedOrientationIsPortrait === null || lockedOrientationIsPortrait !== isPortrait) {
+        lockedOrientationIsPortrait = isPortrait;
+        lockedMobilePortraitHeight = 0;
+      }
+      if (isPortrait) {
+        lockedMobilePortraitHeight = Math.max(lockedMobilePortraitHeight, rawViewportH);
+        viewportH = lockedMobilePortraitHeight;
+      }
+    } else {
+      resetMobileHeightLock();
+    }
+
     const vh = Math.max(1, viewportH * 0.01);
     document.documentElement.style.setProperty("--vh", vh + "px");
     document.documentElement.style.setProperty("--app-height", vh * 100 + "px");
@@ -569,6 +604,17 @@
     recalcLayout();
     setTimeout(recalcLayout, 300);
     setTimeout(recalcLayout, 800);
+  }
+
+  function stabilizeLayoutAfterStart() {
+    if (!isMobileViewport()) {
+      recalcLayout();
+      return;
+    }
+    resetMobileHeightLock();
+    recalcLayout();
+    setTimeout(recalcLayout, 250);
+    setTimeout(recalcLayout, 650);
   }
 
   function resizeCanvas() {
@@ -873,6 +919,7 @@
 
   window.addEventListener("resize", recalcLayoutSoon);
   window.addEventListener("orientationchange", () => {
+    resetMobileHeightLock();
     recalcLayoutSoon();
     setTimeout(recalcLayout, 120);
     setTimeout(recalcLayout, 300);

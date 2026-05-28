@@ -827,7 +827,7 @@ body.game-active .ctrl-btn {
 /* Smartphone-only layout (iPhone Safari優先) */
 @media (max-width: 768px) {
   :root {
-    --controls-h: 6.55rem;
+    --controls-h: 6.2rem;
   }
 
   html,
@@ -897,13 +897,13 @@ body.game-active .ctrl-btn {
   /* Game screen smartphone layout */
   body.game-active {
     background-size: auto, auto, 108% auto, auto;
-    --chrome-w: 2.72rem;
-    --chrome-gap: 0.12rem;
+    --chrome-w: 2.45rem;
+    --chrome-gap: 0.08rem;
   }
 
   body.game-active .game-chrome {
     top: 0.08rem;
-    bottom: calc(var(--controls-h) + var(--safe-bottom) + 0.08rem);
+    bottom: calc(var(--controls-h) + var(--safe-bottom) + 0.04rem);
   }
 
   body.game-active .chrome-card {
