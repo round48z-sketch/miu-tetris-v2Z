@@ -895,7 +895,7 @@ body.game-active .ctrl-btn {
   }
 
   body.title-screen #start-screen > :not(.title-image) {
-    transform: translateY(4.65rem);
+    transform: translateY(9.35rem);
   }
 
   body.title-screen .level-select,
@@ -940,8 +940,31 @@ body.game-active .ctrl-btn {
   }
 
   body.game-active .game-chrome {
-    top: 0.08rem;
+    top: -0.22rem;
     bottom: calc(var(--controls-h) + var(--safe-bottom) + 0.04rem);
+  }
+
+  body.game-active .game-chrome--left {
+    justify-content: flex-start;
+    gap: 0.26rem;
+  }
+
+  body.game-active .game-chrome--right {
+    justify-content: flex-start;
+    gap: 0.26rem;
+    align-items: stretch;
+  }
+
+  body.game-active .game-chrome--right .chrome-card {
+    margin-bottom: 0;
+  }
+
+  body.game-active .game-chrome--right .retry-btn {
+    margin-top: 0;
+  }
+
+  body.game-active .game-chrome--right .home-btn {
+    margin-bottom: 0;
   }
 
   body.game-active .chrome-card {
@@ -1011,16 +1034,21 @@ body.game-active .ctrl-btn {
   }
 
   .controls-row {
-    gap: 0.62rem;
-    width: min(100%, 23rem);
+    gap: 0.82rem;
+    width: min(100%, 24.6rem);
+    max-width: min(100%, 24.6rem);
   }
 
   .controls-row:first-child {
-    gap: 0.92rem;
+    gap: 1.38rem;
   }
 
   .controls-row:last-child {
-    gap: 0.78rem;
+    gap: 1.92rem;
+    width: min(100%, 21.6rem);
+    max-width: min(100%, 21.6rem);
+    grid-template-columns: repeat(2, minmax(0, 8.25rem));
+    justify-content: center;
   }
 
   .ctrl-btn {
@@ -1105,7 +1133,7 @@ body.game-active .ctrl-btn {
   }
 
   body.title-screen #start-screen > :not(.title-image) {
-    transform: translateY(4.25rem);
+    transform: translateY(8.95rem);
   }
 
   body.title-screen #btn-start.neon-btn {
@@ -1123,6 +1151,10 @@ body.game-active .ctrl-btn {
     --chrome-w: 2.9rem;
   }
 
+  body.game-active .game-chrome {
+    top: -0.16rem;
+  }
+
   body.game-active .chrome-title,
   body.game-active .chrome-label {
     font-size: 0.54rem;
@@ -1138,14 +1170,20 @@ body.game-active .ctrl-btn {
   }
 
   .controls-row {
-    gap: 0.56rem;
+    gap: 0.74rem;
+    width: min(100%, 23.4rem);
+    max-width: min(100%, 23.4rem);
   }
 
   .controls-row:first-child {
-    gap: 0.82rem;
+    gap: 1.28rem;
   }
 
   .controls-row:last-child {
-    gap: 0.7rem;
+    gap: 1.64rem;
+    width: min(100%, 20.5rem);
+    max-width: min(100%, 20.5rem);
+    grid-template-columns: repeat(2, minmax(0, 7.6rem));
+    justify-content: center;
   }
 }
