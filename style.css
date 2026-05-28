@@ -261,15 +261,57 @@ body.title-screen {
 }
 
 .logo {
-  font-size: clamp(1.5rem, 7vw, 2.2rem);
-  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  margin: 0;
+  font-weight: 900;
+  line-height: 0.9;
   text-align: center;
-  color: var(--pink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  filter: drop-shadow(0 0 14px rgba(255, 79, 216, 0.75));
+}
+
+.logo-line {
+  display: block;
+}
+
+.logo-line--miu {
+  font-size: 1em;
+  letter-spacing: 0.1em;
+  background: linear-gradient(180deg, #ffffff 0%, #ffd9f7 38%, #ff4fd8 72%, #ff2fc8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   text-shadow:
-    0 0 10px var(--pink),
-    0 0 25px var(--pink-glow),
-    0 0 50px rgba(255, 79, 216, 0.5);
-  letter-spacing: 0.08em;
+    0 0 12px rgba(255, 79, 216, 0.95),
+    0 0 28px rgba(255, 79, 216, 0.65);
+}
+
+.logo-heart {
+  display: inline-block;
+  margin-left: 0.06em;
+  font-size: 0.82em;
+  color: #ff8ee8;
+  text-shadow:
+    0 0 10px rgba(255, 79, 216, 1),
+    0 0 20px rgba(255, 79, 216, 0.8);
+  -webkit-text-fill-color: #ff8ee8;
+}
+
+.logo-line--blocks {
+  font-size: 0.74em;
+  letter-spacing: 0.24em;
+  padding-left: 0.24em;
+  background: linear-gradient(180deg, #ffffff 0%, #c8f8ff 35%, #7ef9ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow:
+    0 0 10px rgba(126, 249, 255, 0.85),
+    0 0 22px rgba(126, 249, 255, 0.45);
 }
 
 .tagline {
@@ -441,13 +483,24 @@ body.title-screen #start-screen::after {
 }
 
 body.title-screen .logo {
-  font-size: clamp(3.1rem, 18vw, 5rem);
-  line-height: 0.9;
-  letter-spacing: 0.09em;
+  font-size: clamp(2.6rem, 13vw, 4.4rem);
+  line-height: 0.88;
+  filter:
+    drop-shadow(0 0 18px rgba(255, 79, 216, 0.95))
+    drop-shadow(0 0 36px rgba(255, 79, 216, 0.55));
+}
+
+body.title-screen .logo-line--miu {
   text-shadow:
-    0 0 16px rgba(255, 79, 216, 1),
-    0 0 34px rgba(255, 79, 216, 0.95),
-    0 0 70px rgba(255, 79, 216, 0.65);
+    0 0 14px rgba(255, 79, 216, 1),
+    0 0 30px rgba(255, 79, 216, 0.9),
+    0 0 52px rgba(255, 79, 216, 0.6);
+}
+
+body.title-screen .logo-line--blocks {
+  text-shadow:
+    0 0 12px rgba(126, 249, 255, 0.95),
+    0 0 26px rgba(126, 249, 255, 0.55);
 }
 
 body.title-screen .tagline {
@@ -874,9 +927,16 @@ body.game-active .ctrl-btn {
   }
 
   body.title-screen .logo {
-    font-size: clamp(1.45rem, 7.2vw, 2rem);
-    line-height: 0.96;
-    letter-spacing: 0.06em;
+    font-size: clamp(1.85rem, 9vw, 2.55rem);
+    line-height: 0.9;
+    filter:
+      drop-shadow(0 0 12px rgba(255, 79, 216, 0.85))
+      drop-shadow(0 0 24px rgba(255, 79, 216, 0.45));
+  }
+
+  body.title-screen .logo-line--blocks {
+    letter-spacing: 0.2em;
+    padding-left: 0.18em;
   }
 
   body.title-screen .tagline {
