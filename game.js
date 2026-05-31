@@ -76,6 +76,7 @@
   let startLevel = 1;
   let nextType = randomType();
   let holdType = null;
+  const TITLE_BGM = "OP.mp3";
   const BGM_TRACKS = ["song1.mp3", "song2.mp3", "song3.mp3"];
   const bgmAudio = new Audio();
   let bgmVolume = 0.65;
@@ -277,9 +278,19 @@
   function playTrackByIndex(idx) {
     if (idx < 0 || idx >= BGM_TRACKS.length) return;
     currentTrackIdx = idx;
+    bgmAudio.loop = false;
     bgmAudio.src = BGM_TRACKS[idx];
     bgmAudio.currentTime = 0;
     bgmAudio.volume = bgmVolume;
+    bgmAudio.play().catch(() => {});
+  }
+
+  function startTitleBgm() {
+    bgmAudio.loop = true;
+    bgmAudio.src = TITLE_BGM;
+    bgmAudio.currentTime = 0;
+    bgmAudio.volume = bgmVolume;
+    currentTrackIdx = -1;
     bgmAudio.play().catch(() => {});
   }
 
@@ -291,6 +302,7 @@
 
   function stopBgm() {
     bgmAudio.pause();
+    bgmAudio.loop = false;
     bgmAudio.removeAttribute("src");
     bgmAudio.load();
     currentTrackIdx = -1;
@@ -302,12 +314,21 @@
   }
 
   function previewBgmVolume() {
-    if (BGM_TRACKS.length === 0) return;
     bgmAudio.volume = bgmVolume;
     if (running) return;
 
+    if (body.classList.contains("title-screen")) {
+      if (bgmAudio.paused || !bgmAudio.getAttribute("src")) {
+        startTitleBgm();
+      }
+      return;
+    }
+
+    if (BGM_TRACKS.length === 0) return;
+
     if (!bgmAudio.getAttribute("src")) {
       currentTrackIdx = 0;
+      bgmAudio.loop = false;
       bgmAudio.src = BGM_TRACKS[currentTrackIdx];
       bgmAudio.currentTime = 0;
     }
@@ -511,11 +532,11 @@
     startScreen.classList.remove("hidden");
     homeBtn.classList.add("hidden");
     retryLiveBtn.classList.add("hidden");
-    stopBgm();
     body.classList.remove("game-active");
     body.style.removeProperty("--game-bg-image");
     body.classList.add("title-screen");
     setAudioSettingsOpen(false);
+    startTitleBgm();
     updatePreviewPanels();
     draw();
   }
