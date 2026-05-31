@@ -27,6 +27,7 @@
   const levelSideEl = document.getElementById("level-side");
   const overlay = document.getElementById("overlay");
   const startScreen = document.getElementById("start-screen");
+  const tapGate = document.getElementById("tap-gate");
   const finalScoreEl = document.getElementById("final-score");
   const homeBtn = document.getElementById("btn-home");
   const homeGoBtn = document.getElementById("btn-home-go");
@@ -83,7 +84,7 @@
   let seVolume = 0.6;
   let currentTrackIdx = -1;
   let audioCtx = null;
-  let bgmUnlockBound = false;
+  let titleReady = false;
   let lastSePreviewAt = 0;
   let lockedMobilePortraitHeight = 0;
   let lockedOrientationIsPortrait = null;
@@ -97,38 +98,32 @@
     return (bgmAudio.currentSrc || bgmAudio.src || "").includes(TITLE_BGM);
   }
 
-  function bindBgmUnlockListeners() {
-    if (bgmUnlockBound) return;
-    bgmUnlockBound = true;
-
-    const unlock = () => {
-      ensureAudioContext();
-      if (body.classList.contains("title-screen")) {
-        startTitleBgm();
-        return;
-      }
-      if (running && !bgmAudio.getAttribute("src")) {
-        startBgmRandom();
-        return;
-      }
-      if (bgmAudio.paused && bgmAudio.getAttribute("src")) {
-        bgmAudio.play().catch(() => {});
-      }
-    };
-
-    ["pointerdown", "touchstart", "keydown"].forEach((ev) => {
-      document.addEventListener(ev, unlock, { capture: true, once: true, passive: true });
-    });
+  function tryPlayBgm() {
+    return bgmAudio.play().catch(() => {});
   }
 
-  function tryPlayBgm() {
-    return bgmAudio.play().catch(() => {
-      bindBgmUnlockListeners();
-    });
+  function unlockTitleScreen() {
+    if (titleReady) return;
+    titleReady = true;
+    body.classList.remove("title-locked");
+    tapGate.classList.add("hidden");
+    ensureAudioContext();
+    startTitleBgm();
+  }
+
+  function syncTitleGate() {
+    if (titleReady) {
+      tapGate.classList.add("hidden");
+      body.classList.remove("title-locked");
+      startTitleBgm();
+      return;
+    }
+    tapGate.classList.remove("hidden");
+    body.classList.add("title-locked");
   }
 
   function resumeTitleBgmIfNeeded() {
-    if (!body.classList.contains("title-screen")) return;
+    if (!titleReady || !body.classList.contains("title-screen")) return;
     if (bgmAudio.paused || !isTitleBgmLoaded()) {
       startTitleBgm();
     }
@@ -365,6 +360,7 @@
     if (running) return;
 
     if (body.classList.contains("title-screen")) {
+      if (!titleReady) return;
       if (bgmAudio.paused || !bgmAudio.getAttribute("src")) {
         startTitleBgm();
       }
@@ -583,7 +579,7 @@
     body.style.removeProperty("--game-bg-image");
     body.classList.add("title-screen");
     setAudioSettingsOpen(false);
-    startTitleBgm();
+    syncTitleGate();
     updatePreviewPanels();
     draw();
   }
@@ -952,7 +948,12 @@
     draw();
   }
 
+  tapGate.addEventListener("click", () => {
+    unlockTitleScreen();
+    playSe("start");
+  });
   document.getElementById("btn-start").addEventListener("click", () => {
+    if (!titleReady) return;
     playSe("start");
     resetGame();
   });
@@ -1048,10 +1049,20 @@
   document.querySelectorAll(".ctrl-btn").forEach(bindControlButton);
 
   document.addEventListener("keydown", (e) => {
-    if (startScreen.classList.contains("hidden") === false && e.code === "Space") {
-      playSe("start");
-      resetGame();
-      return;
+    if (startScreen.classList.contains("hidden") === false) {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        if (!titleReady) {
+          unlockTitleScreen();
+          playSe("start");
+          return;
+        }
+        if (e.code === "Space") {
+          playSe("start");
+          resetGame();
+        }
+        return;
+      }
     }
     const map = {
       ArrowLeft: "left",
@@ -1080,13 +1091,13 @@
   );
 
   window.addEventListener("pageshow", () => {
-    if (body.classList.contains("title-screen")) {
+    if (titleReady && body.classList.contains("title-screen")) {
       startTitleBgm();
     }
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
-    if (body.classList.contains("title-screen")) {
+    if (titleReady && body.classList.contains("title-screen")) {
       startTitleBgm();
     }
   });
