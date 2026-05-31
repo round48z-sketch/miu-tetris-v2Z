@@ -83,6 +83,7 @@
   let seVolume = 0.6;
   let currentTrackIdx = -1;
   let audioCtx = null;
+  let bgmUnlockBound = false;
   let lastSePreviewAt = 0;
   let lockedMobilePortraitHeight = 0;
   let lockedOrientationIsPortrait = null;
@@ -90,6 +91,48 @@
   bgmAudio.preload = "auto";
   bgmAudio.loop = false;
   bgmAudio.playsInline = true;
+  bgmAudio.src = TITLE_BGM;
+
+  function isTitleBgmLoaded() {
+    return (bgmAudio.currentSrc || bgmAudio.src || "").includes(TITLE_BGM);
+  }
+
+  function bindBgmUnlockListeners() {
+    if (bgmUnlockBound) return;
+    bgmUnlockBound = true;
+
+    const unlock = () => {
+      ensureAudioContext();
+      if (body.classList.contains("title-screen")) {
+        startTitleBgm();
+        return;
+      }
+      if (running && !bgmAudio.getAttribute("src")) {
+        startBgmRandom();
+        return;
+      }
+      if (bgmAudio.paused && bgmAudio.getAttribute("src")) {
+        bgmAudio.play().catch(() => {});
+      }
+    };
+
+    ["pointerdown", "touchstart", "keydown"].forEach((ev) => {
+      document.addEventListener(ev, unlock, { capture: true, once: true, passive: true });
+    });
+  }
+
+  function tryPlayBgm() {
+    return bgmAudio.play().catch(() => {
+      bindBgmUnlockListeners();
+    });
+  }
+
+  function resumeTitleBgmIfNeeded() {
+    if (!body.classList.contains("title-screen")) return;
+    if (bgmAudio.paused || !isTitleBgmLoaded()) {
+      startTitleBgm();
+    }
+  }
 
   function calcDropInterval(currentLevel) {
     return Math.max(120, 800 - (currentLevel - 1) * 70);
@@ -157,8 +200,10 @@
   }
 
   function playSe(type) {
+    ensureAudioContext();
+    resumeTitleBgmIfNeeded();
     if (seVolume <= 0) return;
-    const ctx = ensureAudioContext();
+    const ctx = audioCtx;
     if (!ctx) return;
     const now = ctx.currentTime;
     const v = seVolume * 0.36;
@@ -287,11 +332,13 @@
 
   function startTitleBgm() {
     bgmAudio.loop = true;
-    bgmAudio.src = TITLE_BGM;
-    bgmAudio.currentTime = 0;
     bgmAudio.volume = bgmVolume;
     currentTrackIdx = -1;
-    bgmAudio.play().catch(() => {});
+    if (!isTitleBgmLoaded()) {
+      bgmAudio.src = TITLE_BGM;
+      bgmAudio.currentTime = 0;
+    }
+    tryPlayBgm();
   }
 
   function startBgmRandom() {
@@ -1032,6 +1079,17 @@
     { passive: false }
   );
 
+  window.addEventListener("pageshow", () => {
+    if (body.classList.contains("title-screen")) {
+      startTitleBgm();
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    if (body.classList.contains("title-screen")) {
+      startTitleBgm();
+    }
+  });
   window.addEventListener("resize", recalcLayoutSoon);
   window.addEventListener("orientationchange", () => {
     resetMobileHeightLock();
