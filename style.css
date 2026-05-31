@@ -230,23 +230,32 @@ body.title-screen {
   z-index: 0;
 }
 
-.tap-gate {
+#start-screen > .tap-gate {
   position: absolute;
   inset: 0;
   z-index: 20;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
   margin: 0;
-  padding: 1rem;
+  padding: 0;
   border: none;
-  background: rgba(10, 0, 18, 0.52);
+  background: rgba(10, 0, 18, 0.28);
   color: #ffd3f4;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.tap-gate-label {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(5.5rem, 14vh, 7.5rem);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  pointer-events: none;
 }
 
 .tap-gate-text {
@@ -1044,6 +1053,10 @@ body.game-active .ctrl-btn {
     letter-spacing: 0.08em;
   }
 
+  body.title-screen .tap-gate-label {
+    bottom: clamp(6.5rem, 17vh, 8.5rem);
+  }
+
   /* Game screen smartphone layout */
   body.game-active {
     background-size: auto, auto, 108% auto, auto;
@@ -1252,6 +1265,10 @@ body.game-active .ctrl-btn {
     margin-top: 0.6rem;
     padding: 0.62rem 1.55rem;
     font-size: clamp(0.85rem, 4.3vw, 1.04rem);
+  }
+
+  body.title-screen .tap-gate-label {
+    bottom: clamp(6rem, 16vh, 8rem);
   }
 
   .ctrl-btn {
